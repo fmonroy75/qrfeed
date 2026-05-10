@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // FUNCIONES AUXILIARES
+    // ============================================
+    
+    // Verifica si el usuario es Super Admin
+    function isSuperAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'admin@ib.com';
+    }
+    
+    // Obtiene el tenantId del usuario autenticado
+    function getUserTenantId() {
+      return get(/databases/$(database)/documents/usuarios_restaurant/$(request.auth.uid)).data.tenantId;
+    }
+    
+    // Verifica si el usuario pertenece al tenant
+    function isTenantUser(tenantId) {
+      return request.auth != null && 
+             getUserTenantId() == tenantId;
+    }
+    
+    // Verifica si el usuario es administrador de su tenant
+    function isTenantAdmin(tenantId) {
+      return request.auth != null && 
+             getUserTenantId() == tenantId &&
+             get(/databases/$(database)/documents/usuarios_restaurant/$(request.auth.uid)).data.rol == 'admin';
+    }
+    
+    // Verifica si el usuario es mesero o cocina (puede ver pedidos)
+    function isTenantStaff(tenantId) {
+      return request.auth != null && 
+             getUserTenantId() == tenantId &&
+             (get(/databases/$(database)/documents/usuarios_restaurant/$(request.auth.uid)).data.rol == 'mesero' ||
+              get(/databases/$(database)/documents/usuarios_restaurant/$(request.auth.uid)).data.rol == 'cocina');
+    }
+    
+    
+    // ============================================
+    // COLECCIONES GLOBALES
+    // ============================================
+    
+    // SlugIndex - Mapeo de slugs a tenants
+    match /slugIndex/{slug} {
+      allow read: if true;  // Cualquiera puede leer (para resolver URLs)
+      allow write: if isSuperAdmin();  // Solo Super Admin puede crear/modificar
+    }
+    
+    // Dominios personalizados
+    match /dominios/{dominio} {
+      allow read: if true;  // Cualquiera puede leer (para resolver URLs)
+      allow write: if isSuperAdmin();  // Solo Super Admin puede gestionar
+    }
+    
+    // Configuración global del sistema
+    match /admin_settings/{setting} {
+      allow read: if request.auth != null;  // Usuarios autenticados pueden leer
+      allow write: if isSuperAdmin();  // Solo Super Admin puede modificar
+    }
+    
+    
+    // ============================================
+    // TENANTS (RESTAURANTES)
+    // ============================================
+    
+    match /tenants/{tenantId} {
+      // Lectura: público (cualquiera puede ver datos básicos del restaurante)
+      allow read: if true;
+      
+      // Escritura: solo Super Admin o el admin del tenant
+      allow write: if isSuperAdmin() || isTenantAdmin(tenantId);
+      
+      // ============================================
+      // CATEGORÍAS (subcolección)
+      // ============================================
+      match /categorias/{categoriaId} {
+        allow read: if true;  // Público (cliente ve el menú)
+        allow write: if isSuperAdmin() || isTenantAdmin(tenantId);  // Solo admin del tenant
+      }
+      
+      // ============================================
+      // MENÚ (subcolección)
+      // ============================================
+      match /menu/{productoId} {
+        allow read: if true;  // Público (cliente ve el menú)
+        allow write: if isSuperAdmin() || isTenantAdmin(tenantId);  // Solo admin del tenant
+      }
+      
+      // ============================================
+      // MESAS (subcolección)
+      // ============================================
+      match /mesas/{mesaId} {
+        allow read: if true;  // Público (para mostrar QR)
+        allow write: if isSuperAdmin() || isTenantAdmin(tenantId);  // Solo admin del tenant
+      }
+      
+      // ============================================
+      // PEDIDOS (subcolección) - CRÍTICA
+      // ============================================
+      match /pedidos/{pedidoId} {
+        // Lectura: empleados del tenant o Super Admin
+        allow read: if isSuperAdmin() || isTenantUser(tenantId) || isTenantStaff(tenantId);
+        
+        // Creación: cualquiera (cliente escanea QR y crea pedido)
+        allow create: if true;
+        
+        // Actualización: 
+        // - Empleados del tenant pueden actualizar cualquier campo
+        // - Cliente (sin auth) puede actualizar SOLO mientras el pedido está pendiente
+        allow update: if (isSuperAdmin() || isTenantUser(tenantId) || isTenantStaff(tenantId)) ||
+                       (request.auth == null && 
+                        resource.data.estado == 'pendiente' &&
+                        request.resource.data.diff(resource.data).affectedKeys.hasOnly(['items', 'total', 'enviadoACocina']));
+        
+        // Eliminación: solo Super Admin
+        allow delete: if isSuperAdmin();
+      }
+    }
+    
+    
+    // ============================================
+    // USUARIOS DEL RESTAURANTE
+    // ============================================
+    
+    match /usuarios_restaurant/{userId} {
+      // Lectura: 
+      // - El propio usuario puede leer sus datos
+      // - Super Admin puede leer todo
+      // - Admin del mismo tenant puede leer a sus empleados
+      allow read: if request.auth != null && (
+                     request.auth.uid == userId ||
+                     isSuperAdmin() ||
+                     (isTenantAdmin(getUserTenantId()) && 
+                      get(/databases/$(database)/documents/usuarios_restaurant/$(userId)).data.tenantId == getUserTenantId())
+                   );
+      
+      // Creación: solo Super Admin (usa su panel para invitar)
+      allow create: if isSuperAdmin();
+      
+      // Actualización:
+      // - El propio usuario puede actualizar su nombre y contraseña
+      // - Super Admin puede actualizar todo
+      // - Admin del tenant puede actualizar empleados de su tenant (excepto cambiar tenantId)
+      allow update: if (request.auth != null && request.auth.uid == userId &&
+                         request.resource.data.diff(resource.data).affectedKeys.hasOnly(['nombre'])) ||
+                       isSuperAdmin() ||
+                       (isTenantAdmin(getUserTenantId()) &&
+                        resource.data.tenantId == getUserTenantId() &&
+                        !request.resource.data.diff(resource.data).affectedKeys.hasAny(['tenantId']));
+      
+      // Eliminación: solo Super Admin o Admin del tenant
+      allow delete: if isSuperAdmin() || 
+                     (isTenantAdmin(getUserTenantId()) && 
+                      resource.data.tenantId == getUserTenantId());
+    }
+  }
+}

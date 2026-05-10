@@ -37,7 +37,7 @@
 
             <!-- QR Code -->
             <div class="d-flex justify-center mb-3">
-              <qrcode-vue :value="qrUrl(mesa.id)" :size="120" />
+              <qrcode-vue :value="qrUrl(mesa.id)" :width="120" :height="120" />
             </div>
 
             <v-divider class="my-3" />
@@ -95,7 +95,7 @@
         <v-card-text>
           <div ref="printArea" class="qr-print">
             <div v-for="mesa in selectedMesas" :key="mesa.id" class="qr-item">
-              <qrcode-vue :value="qrUrl(mesa.id)" :size="150" />
+              <qrcode-vue :value="qrUrl(mesa.id)" :width="150" :height="150" />
               <div class="text-center mt-2 font-weight-bold">{{ mesa.id }}</div>
             </div>
           </div>
@@ -124,7 +124,7 @@ import {
   query,
   where,
 } from 'firebase/firestore'
-import QrcodeVue from 'qrcode.vue'
+import QrcodeVue from 'qrcode-vue3'
 
 const authStore = useAuthStore()
 const mesas = ref([])

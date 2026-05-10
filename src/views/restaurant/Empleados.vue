@@ -105,7 +105,7 @@
           </div>
         </template>
 
-        <template v-slot:item.nombre="{ item }">
+        <template v-slot:[`item.nombre`]="{ item }">
           <div class="d-flex align-center">
             <v-avatar size="36" :color="getAvatarColor(item)" class="mr-3">
               <v-icon :icon="getAvatarIcon(item)" size="20" color="white" />
@@ -117,24 +117,24 @@
           </div>
         </template>
 
-        <template v-slot:item.rol="{ item }">
+        <template v-slot:[`item.rol`]="{ item }">
           <v-chip :color="rolColors[item.rol]" size="small">
             <v-icon :icon="rolIcons[item.rol]" size="small" class="mr-1" />
             {{ rolLabels[item.rol] }}
           </v-chip>
         </template>
 
-        <template v-slot:item.activo="{ item }">
+        <template v-slot:[`item.activo`]="{ item }">
           <v-chip :color="item.activo ? 'success' : 'error'" size="small">
             {{ item.activo ? 'Activo' : 'Inactivo' }}
           </v-chip>
         </template>
 
-        <template v-slot:item.ultimoAcceso="{ item }">
+        <template v-slot:[`item.ultimoAcceso`]="{ item }">
           {{ formatFecha(item.ultimoAcceso) }}
         </template>
 
-        <template v-slot:item.actions="{ item }">
+        <template v-slot:[`item.actions`]="{ item }">
           <v-btn
             icon
             variant="text"

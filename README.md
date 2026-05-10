@@ -36,3 +36,13 @@ npm run dev
 ```sh
 npm run build
 ```
+
+# Desplegar reglas, índices y hosting en un solo comando
+
+firebase deploy --only firestore,hosting
+
+# O por separado:
+
+firebase deploy --only firestore:indexes # solo índices
+firebase deploy --only firestore:rules # solo reglas
+firebase deploy --only hosting # solo la app

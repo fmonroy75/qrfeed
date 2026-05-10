@@ -177,7 +177,7 @@
             items-per-page="10"
             class="elevation-0"
           >
-            <template v-slot:item.items="{ item }">
+            <template v-slot:[`item.items`]="{ item }">
               <div class="text-caption">
                 <div v-for="i in item.items.slice(0, 2)" :key="i.id">
                   {{ i.cantidad }}x {{ i.nombre }}
@@ -188,11 +188,11 @@
               </div>
             </template>
 
-            <template v-slot:item.total="{ item }">
+            <template v-slot:[`item.total`]="{ item }">
               <span class="font-weight-bold">${{ (item.total || 0).toLocaleString() }}</span>
             </template>
 
-            <template v-slot:item.hora="{ item }">
+            <template v-slot:[`item.hora`]="{ item }">
               {{ formatHora(item.horaApertura) }}
             </template>
           </v-data-table>
@@ -347,12 +347,8 @@ const ventasPorCategoria = computed(() => {
   pedidosFiltrados.value.forEach((pedido) => {
     pedido.items?.forEach((item) => {
       const categoria = item.categoria || 'Otros'
-      const existing = categoryMap.get(categoria)
-      if (existing) {
-        existing += item.precio * item.cantidad
-      } else {
-        categoryMap.set(categoria, item.precio * item.cantidad)
-      }
+      const prev = categoryMap.get(categoria) ?? 0
+      categoryMap.set(categoria, prev + item.precio * item.cantidad)
     })
   })
 

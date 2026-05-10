@@ -22,12 +22,20 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'],
-          vuetify: ['vuetify'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          charts: ['chart.js'],
-          moment: ['moment'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (
+            id.includes('/vue/') ||
+            id.includes('\\vue\\') ||
+            id.includes('vue-router') ||
+            id.includes('pinia')
+          ) {
+            return 'vendor'
+          }
+          if (id.includes('vuetify')) return 'vuetify'
+          if (id.includes('firebase')) return 'firebase'
+          if (id.includes('chart.js')) return 'charts'
+          if (id.includes('moment')) return 'moment'
         },
       },
     },
