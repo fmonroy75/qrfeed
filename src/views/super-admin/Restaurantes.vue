@@ -189,7 +189,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { db, auth } from '@/firebase'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth'
+import { initializeApp, deleteApp } from 'firebase/app'
 import moment from 'moment'
 
 const loading = ref(false)
@@ -326,9 +327,15 @@ const saveRestaurant = async () => {
         })
       }
 
-      // Crear usuario admin
+      // Crear usuario admin usando App Secundaria para no perder la sesión
       const password = Math.random().toString(36).slice(-8)
-      const userCred = await createUserWithEmailAndPassword(auth, formData.value.email, password)
+      
+      const secondaryApp = initializeApp(auth.app.options, 'SecondaryApp')
+      const secondaryAuth = getAuth(secondaryApp)
+      
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.value.email, password)
+      
+      await deleteApp(secondaryApp)
 
       await setDoc(doc(db, 'usuarios_restaurant', userCred.user.uid), {
         email: formData.value.email,

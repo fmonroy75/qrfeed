@@ -38,7 +38,7 @@
             <v-chip color="primary" variant="tonal" size="small"> Últimos 12 meses </v-chip>
           </v-card-title>
           <v-card-text>
-            <canvas ref="incomeChart" height="300"></canvas>
+            <canvas ref="incomeChartRef" height="300"></canvas>
           </v-card-text>
         </v-card>
       </v-col>
@@ -47,7 +47,7 @@
         <v-card rounded="xl" elevation="2">
           <v-card-title class="text-h6 font-weight-bold"> Distribución por plan </v-card-title>
           <v-card-text>
-            <canvas ref="planChart" height="250"></canvas>
+            <canvas ref="planChartRef" height="250"></canvas>
             <v-divider class="my-4" />
             <v-list density="compact" class="bg-transparent">
               <v-list-item v-for="plan in planDistribution" :key="plan.name">

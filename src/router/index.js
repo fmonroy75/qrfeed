@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: () => import('../views/Landing.vue'),
     },
     {
       path: '/about',
@@ -17,6 +16,32 @@ const router = createRouter({
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue'),
     },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/Login.vue'),
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/Register.vue'),
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPassword.vue'),
+    },
+    {
+      path: '/pending',
+      name: 'pending',
+      component: () => import('../views/PendingApproval.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/pricing',
+      name: 'pricing',
+      component: () => import('../views/Landing.vue'),
+    },
     // router/index.js (añadir después de las existentes)
     {
       path: '/super-admin',
@@ -25,6 +50,7 @@ const router = createRouter({
       children: [
         { path: '', component: () => import('@/views/super-admin/Dashboard.vue') },
         { path: 'restaurantes', component: () => import('@/views/super-admin/Restaurantes.vue') },
+        { path: 'solicitudes', component: () => import('@/views/super-admin/Solicitudes.vue') },
         { path: 'suscripciones', component: () => import('@/views/super-admin/Suscripciones.vue') },
         { path: 'reportes', component: () => import('@/views/super-admin/Reportes.vue') },
         { path: 'configuracion', component: () => import('@/views/super-admin/Configuracion.vue') },
@@ -82,6 +108,32 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+import { useAuthStore } from '../stores/auth'
+
+router.beforeEach(async (to, from) => {
+  const authStore = useAuthStore()
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresSuperAdmin = to.matched.some((record) => record.meta.requiresSuperAdmin)
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return '/login'
+  }
+
+  if (requiresSuperAdmin && !authStore.isSuperAdmin) {
+    return '/'
+  }
+
+  // Si va al dashboard y su rol es pending, redirigir a pending
+  if (to.path.startsWith('/dashboard') && authStore.userRole === 'pending') {
+    return '/pending'
+  }
+  
+  // Si va a pending pero no es pending, redirigir al dashboard
+  if (to.path === '/pending' && authStore.userRole !== 'pending' && authStore.isAuthenticated) {
+    return '/dashboard'
+  }
 })
 
 export default router

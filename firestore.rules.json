@@ -9,7 +9,7 @@ service cloud.firestore {
     // Verifica si el usuario es Super Admin
     function isSuperAdmin() {
       return request.auth != null && 
-             request.auth.token.email == 'admin@ib.com';
+             (request.auth.token.email == 'admin@ib.com' || request.auth.token.email == 'demo@ingeniumbright.com');
     }
     
     // Obtiene el tenantId del usuario autenticado
@@ -46,7 +46,8 @@ service cloud.firestore {
     // SlugIndex - Mapeo de slugs a tenants
     match /slugIndex/{slug} {
       allow read: if true;  // Cualquiera puede leer (para resolver URLs)
-      allow write: if isSuperAdmin();  // Solo Super Admin puede crear/modificar
+      allow create: if request.auth != null; // Permitir al crear restaurante
+      allow update, delete: if isSuperAdmin();  // Solo Super Admin puede modificar
     }
     
     // Dominios personalizados
@@ -70,8 +71,11 @@ service cloud.firestore {
       // Lectura: público (cualquiera puede ver datos básicos del restaurante)
       allow read: if true;
       
-      // Escritura: solo Super Admin o el admin del tenant
-      allow write: if isSuperAdmin() || isTenantAdmin(tenantId);
+      // Creación: usuarios autenticados (para registro público) o Super Admin
+      allow create: if request.auth != null;
+      
+      // Actualización/Eliminación: solo Super Admin o el admin del tenant
+      allow update, delete: if isSuperAdmin() || isTenantAdmin(tenantId);
       
       // ============================================
       // CATEGORÍAS (subcolección)
@@ -127,18 +131,24 @@ service cloud.firestore {
     
     match /usuarios_restaurant/{userId} {
       // Lectura: 
-      // - El propio usuario puede leer sus datos
       // - Super Admin puede leer todo
-      // - Admin del mismo tenant puede leer a sus empleados
-      allow read: if request.auth != null && (
-                     request.auth.uid == userId ||
-                     isSuperAdmin() ||
-                     (isTenantAdmin(getUserTenantId()) && 
-                      get(/databases/$(database)/documents/usuarios_restaurant/$(userId)).data.tenantId == getUserTenantId())
-                   );
+      allow read: if isSuperAdmin();
       
-      // Creación: solo Super Admin (usa su panel para invitar)
-      allow create: if isSuperAdmin();
+      // - El propio usuario puede leer sus datos
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // - Admin del mismo tenant puede leer a sus empleados
+      allow read: if request.auth != null && 
+                     isTenantAdmin(getUserTenantId()) && 
+                     resource.data.tenantId == getUserTenantId();
+      
+      // Creación: 
+      // - Super Admin
+      // - El propio usuario (registro público)
+      // - Admin del tenant (invitar empleado)
+      allow create: if isSuperAdmin() || 
+                     (request.auth != null && request.auth.uid == userId) ||
+                     (request.auth != null && isTenantAdmin(request.resource.data.tenantId));
       
       // Actualización:
       // - El propio usuario puede actualizar su nombre y contraseña

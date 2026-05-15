@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, addDoc, setDoc } from 'firebase/firestore'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -39,10 +39,25 @@ export const useAuthStore = defineStore('auth', {
     async register(email, password, restaurantData) {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-        this.user = userCredential.user
+        const uid = userCredential.user.uid
 
-        // Aquí habría que crear el tenant (solo super admin puede)
-        // Por ahora, solo registro de usuario
+        // Vincular el usuario con rol 'pending' y guardar la solicitud
+        await setDoc(doc(db, 'usuarios_restaurant', uid), {
+          email: email,
+          rol: 'pending',
+          activo: true,
+          tenantId: null,
+          solicitudRestaurante: {
+            nombre: restaurantData.nombre,
+            slug: restaurantData.slug,
+            fechaSolicitud: new Date()
+          }
+        })
+
+        this.user = userCredential.user
+        this.userRole = 'pending'
+        this.tenantId = null
+
         return { success: true }
       } catch (error) {
         return { success: false, error: error.message }

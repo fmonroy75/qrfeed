@@ -278,7 +278,8 @@ import {
   where,
   onSnapshot,
 } from 'firebase/firestore'
-import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { initializeApp, deleteApp } from 'firebase/app'
 import moment from 'moment'
 
 const authStore = useAuthStore()
@@ -445,12 +446,17 @@ const saveEmployee = async () => {
 
   try {
     if (dialogMode.value === 'create') {
-      // Crear usuario en Firebase Auth
+      // Crear usuario en Firebase Auth usando App Secundaria
+      const secondaryApp = initializeApp(auth.app.options, 'EmployeeApp')
+      const secondaryAuth = getAuth(secondaryApp)
+      
       const userCred = await createUserWithEmailAndPassword(
-        auth,
+        secondaryAuth,
         employeeForm.value.email,
         employeeForm.value.password,
       )
+      
+      await deleteApp(secondaryApp)
 
       // Crear documento en Firestore
       await addDoc(collection(db, 'usuarios_restaurant'), {

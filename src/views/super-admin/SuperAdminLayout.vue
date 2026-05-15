@@ -112,6 +112,7 @@ const userEmail = computed(() => authStore.user?.email)
 const menuItems = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/super-admin' },
   { title: 'Restaurantes', icon: 'mdi-store', to: '/super-admin/restaurantes' },
+  { title: 'Solicitudes', icon: 'mdi-account-clock', to: '/super-admin/solicitudes' },
   { title: 'Suscripciones', icon: 'mdi-credit-card', to: '/super-admin/suscripciones' },
   { title: 'Reportes', icon: 'mdi-chart-line', to: '/super-admin/reportes' },
   { title: 'Configuración', icon: 'mdi-cog', to: '/super-admin/configuracion' },

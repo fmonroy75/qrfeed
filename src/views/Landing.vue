@@ -193,7 +193,7 @@ const plans = [
       'Branding removido',
     ],
     ctaText: 'Contactar',
-    ctaLink: '/contact',
+    ctaLink: 'mailto:ventas@qrfeed.com',
     recommended: false,
   },
 ]

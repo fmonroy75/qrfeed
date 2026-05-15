@@ -8,7 +8,7 @@
             <span class="text-h5 font-weight-bold">Mesas</span>
             <span class="text-caption text-grey ml-2">Gestiona tus mesas y códigos QR</span>
           </div>
-          <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
+          <v-btn color="primary" prepend-icon="mdi-plus" @click="dialog = true">
             Agregar mesa
           </v-btn>
         </div>
@@ -117,12 +117,14 @@ import { db } from '@/firebase'
 import {
   collection,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   query,
   where,
+  setDoc,
 } from 'firebase/firestore'
 import QrcodeVue from 'qrcode-vue3'
 
@@ -138,10 +140,7 @@ const rules = {
 }
 
 const baseUrl = 'https://qrfeed.ib.com'
-const restaurantSlug = computed(() => {
-  // Obtener slug del restaurante actual
-  return 'la-buena-mesa' // Esto vendrá del store
-})
+const restaurantSlug = ref('')
 
 const qrUrl = (mesaId) => {
   return `${baseUrl}/menu/${restaurantSlug.value}/${mesaId}`
@@ -155,6 +154,12 @@ const qrPreviewUrl = computed(() => {
 })
 
 const loadMesas = async () => {
+  // Cargar info del restaurante para el slug
+  const restDoc = await getDoc(doc(db, 'tenants', authStore.tenantId))
+  if (restDoc.exists()) {
+    restaurantSlug.value = restDoc.data().slug
+  }
+
   const mesasRef = collection(db, 'tenants', authStore.tenantId, 'mesas')
   const snapshot = await getDocs(mesasRef)
   mesas.value = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -163,7 +168,7 @@ const loadMesas = async () => {
 const createMesa = async () => {
   if (!newMesaId.value) return
 
-  await addDoc(collection(db, 'tenants', authStore.tenantId, 'mesas'), {
+  await setDoc(doc(db, 'tenants', authStore.tenantId, 'mesas', newMesaId.value), {
     id: newMesaId.value,
     estado: 'libre',
     createdAt: new Date(),
